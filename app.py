@@ -10,8 +10,8 @@ spec = FlaskPydanticSpec('flask',
 spec.register(app)
 
 
-@app.route('/desconto/<valor_inicial>/<primeira_compra>/', methods = ['GET'])
-def desconto(valor_inicial, primeira_compra):
+@app.route('/desconto', methods=['POST'])
+def desconto():
     """
         **API para calcular desconto**
 
@@ -38,39 +38,37 @@ def desconto(valor_inicial, primeira_compra):
         """
 
     try:
-        valor_inicial = float(valor_inicial)
-        primeira_compra = bool(primeira_compra)
+        dados_entrada = request.get_json()
+        valor_inicial = float(dados_entrada["valor_inicial"])
+        primeira_compra = dados_entrada["primeira_compra"].upper
+        desconto = 0
 
         if valor_inicial <= 100:
-            desconto = valor_inicial
+            desconto = 0
 
-        elif valor_inicial >= 101 or valor_inicial <= 500:
-            desconto = valor_inicial * 0.05
+        elif valor_inicial >= 500:
+            desconto = valor_inicial * (10 / 100)
 
         else:
-            desconto = valor_inicial * 0.1
+            desconto = valor_inicial * (5 / 100)
 
-        if primeira_compra == True:
-            desconto = valor_inicial - 25
+        if primeira_compra == "True" and (valor_inicial > 50):
+            desconto = desconto + 25
+        valor_final = valor_inicial - desconto
 
-        data_processamento = datetime.today().strftime("%d/%m/%Y")
+        data_processamento = datetime.today().isoformat()
 
         dados = {
             "data_processamento": data_processamento,
             "valor_inicial": valor_inicial,
-            "desconto": desconto,
-            "desconto_primeira_compra": primeira_compra,
-            "valor_final": desconto
+            "valor_desconto": desconto,
+            "valor_final": valor_final
         }
 
-    except ValueError:
-        dados = {
-            "status": "error",
-            "msg": "Dados Inválidos"
-        }
         return jsonify(dados), 400
 
-    return jsonify(dados)
+    except Exception as e:
+       return jsonify({"msg": str(e)}), 500
 
 
 if __name__ == '__main__':
